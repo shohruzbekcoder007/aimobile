@@ -204,7 +204,8 @@ export const streamChatResponse = async (query: string, onChunk: (chunk: string)
         // Send the request with the query and chat ID
         xhr.send(JSON.stringify({
           query,
-          chat_id: chatId
+          chat_id: chatId,
+          device: 'mobile'
         }));
       }).catch(error => {
         console.error('Error getting auth token:', error);

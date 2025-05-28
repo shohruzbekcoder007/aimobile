@@ -1,7 +1,7 @@
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -10,45 +10,45 @@ export default function HomeScreen() {
   const router = useRouter();
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1 }} edges={['left', 'right']}>
       <StatusBar style="auto" />
-      <ThemedView style={styles.container}>
-        <View style={styles.header}>
-          <ThemedText style={styles.title}>AI Chatbot</ThemedText>
-          <ThemedText style={styles.subtitle}>Chatbotwithui API bilan ishlaydi</ThemedText>
-        </View>
+        <ThemedView style={styles.container}>
+          <View style={styles.header}>
+            <ThemedText style={styles.title}>AI Chatbot</ThemedText>
+            <ThemedText style={styles.subtitle}>Chatbotwithui API bilan ishlaydi</ThemedText>
+          </View>
 
-        <ThemedView style={styles.infoContainer}>
-          <ThemedText style={styles.sectionTitle}>Imkoniyatlar:</ThemedText>
-          <ThemedText style={styles.featureText}>
-            • Sunʼiy intellekt bilan suhbat{"\n"}
-            • Savollaringizga javoblar olish{"\n"}
-            • Oʻzbek va rus tillarida muloqot{"\n"}
-            • Suhbat tarixini saqlash{"\n"}
-            • Foydalanuvchi autentifikatsiyasi
-          </ThemedText>
+          <ThemedView style={styles.infoContainer}>
+            <ThemedText style={styles.sectionTitle}>Imkoniyatlar:</ThemedText>
+            <ThemedText style={styles.featureText}>
+              • Sunʼiy intellekt bilan suhbat{"\n"}
+              • Savollaringizga javoblar olish{"\n"}
+              • Oʻzbek va rus tillarida muloqot{"\n"}
+              • Suhbat tarixini saqlash{"\n"}
+              • Foydalanuvchi autentifikatsiyasi
+            </ThemedText>
+          </ThemedView>
+
+          <ThemedView style={styles.infoContainer}>
+            <ThemedText style={styles.sectionTitle}>Qanday foydalanish kerak:</ThemedText>
+            <ThemedText style={styles.instructionText}>
+              "AI Chat" tugmasini bosing va savolingizni kiriting. Tizim sizga javob beradi va qoʻshimcha savollar taklif qiladi.
+            </ThemedText>
+          </ThemedView>
+
+          <TouchableOpacity 
+            style={styles.chatButton}
+            onPress={() => router.push('/chat')}
+          >
+            <ThemedText style={styles.chatButtonText}>Suhbatni boshlash</ThemedText>
+          </TouchableOpacity>
+
+          <ThemedView style={styles.noteContainer}>
+            <ThemedText style={styles.noteText}>
+              Eslatma: Bu ilova chatbotwithui API serveriga ulanishni talab qiladi. Server manzilini services/chatApi.ts faylida API_URL oʻzgaruvchisida koʻrsating.
+            </ThemedText>
+          </ThemedView>
         </ThemedView>
-
-        <ThemedView style={styles.infoContainer}>
-          <ThemedText style={styles.sectionTitle}>Qanday foydalanish kerak:</ThemedText>
-          <ThemedText style={styles.instructionText}>
-            "AI Chat" tugmasini bosing va savolingizni kiriting. Tizim sizga javob beradi va qoʻshimcha savollar taklif qiladi.
-          </ThemedText>
-        </ThemedView>
-
-        <TouchableOpacity 
-          style={styles.chatButton}
-          onPress={() => router.push('/chat')}
-        >
-          <ThemedText style={styles.chatButtonText}>Suhbatni boshlash</ThemedText>
-        </TouchableOpacity>
-
-        <ThemedView style={styles.noteContainer}>
-          <ThemedText style={styles.noteText}>
-            Eslatma: Bu ilova chatbotwithui API serveriga ulanishni talab qiladi. Server manzilini services/chatApi.ts faylida API_URL oʻzgaruvchisida koʻrsating.
-          </ThemedText>
-        </ThemedView>
-      </ThemedView>
     </SafeAreaView>
   );
 }
@@ -57,6 +57,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+    paddingBottom: 30,
   },
   header: {
     marginBottom: 24,
@@ -110,6 +111,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: '#FFD900',
     marginTop: 8,
+    marginBottom: 20,
   },
   noteText: {
     fontSize: 14,

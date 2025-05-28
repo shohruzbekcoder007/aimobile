@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, FlatList, ActivityIndicator, Alert, View } from 'react-native';
-import { Stack, router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Stack } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 // Using a simple function to generate IDs instead of uuid which requires crypto.getRandomValues()
 
-import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
-import { sendMessage, getChatHistory, isLoggedIn, streamChatResponse } from '@/services/chatApi';
+import { ThemedView } from '@/components/ThemedView';
+import { getChatHistory, streamChatResponse } from '@/services/chatApi';
 
 interface Message {
   id: string;
@@ -194,7 +194,7 @@ export default function TabChatScreen() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1 }} edges={['left', 'right']}>
       <Stack.Screen
         options={{
           title: 'AI Chat',
