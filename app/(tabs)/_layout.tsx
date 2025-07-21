@@ -2,11 +2,8 @@ import { getUserInfo, isLoggedIn, logoutUser } from '@/services/chatApi';
 import { Ionicons } from '@expo/vector-icons';
 import { router, Tabs } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
@@ -43,28 +40,84 @@ const styles = StyleSheet.create({
   userStatus: {
     fontSize: 12,
   },
-  menuItem: {
+  menuNavItem: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
     paddingHorizontal: 16,
   },
-  menuItemText: {
+  menuNavItemText: {
     marginLeft: 10,
     fontSize: 14,
   },
   profileButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#007AFF',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#2B68E6',
     justifyContent: 'center',
     alignItems: 'center',
   },
   profileButtonText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  menuContent: {
+    width: '80%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 20,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  menuHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  menuTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    padding: 5,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    marginVertical: 5,
+    backgroundColor: '#F0F0F0',
+  },
+  menuItemText: {
+    marginLeft: 10,
+    fontSize: 16,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#EEEEEE',
+    marginVertical: 10,
+  },
+  welcomeText: {
+    marginBottom: 10,
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  tabIconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  activeTabIconContainer: {
+    backgroundColor: 'rgba(43, 104, 230, 0.1)',
   },
 });
 
@@ -108,7 +161,7 @@ export default function TabLayout() {
   const toggleMenu = () => {
     setMenuVisible(!menuVisible);
   };
-  
+
   return (
     <>
       <Modal
@@ -117,9 +170,9 @@ export default function TabLayout() {
         animationType="fade"
         onRequestClose={() => setMenuVisible(false)}
       >
-        <TouchableOpacity 
-          style={styles.modalOverlay} 
-          activeOpacity={1} 
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
           onPress={() => setMenuVisible(false)}
         >
           <View style={[styles.menuContainer, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
@@ -129,90 +182,132 @@ export default function TabLayout() {
                   <Text style={[styles.userName, { color: Colors[colorScheme ?? 'light'].text }]}>{userInfo.name || userInfo.email}</Text>
                   <Text style={[styles.userStatus, { color: Colors[colorScheme ?? 'light'].tabIconDefault }]}>Aktiv foydalanuvchi</Text>
                 </View>
-                
-                <TouchableOpacity style={styles.menuItem} onPress={() => {
+
+                <TouchableOpacity style={styles.menuNavItem} onPress={() => {
                   setMenuVisible(false);
                   // Sozlamalar sahifasi mavjud bo'lsa o'tish
                   router.push('/');
                 }}>
                   <Ionicons name="settings-outline" size={20} color={Colors[colorScheme ?? 'light'].tabIconDefault} />
-                  <Text style={[styles.menuItemText, { color: Colors[colorScheme ?? 'light'].text }]}>Sozlamalar</Text>
+                  <Text style={[styles.menuNavItemText, { color: Colors[colorScheme ?? 'light'].text }]}>Sozlamalar</Text>
                 </TouchableOpacity>
-                
-                <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
+
+                <TouchableOpacity style={styles.menuNavItem} onPress={handleLogout}>
                   <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
-                  <Text style={[styles.menuItemText, { color: "#FF3B30" }]}>Chiqish</Text>
+                  <Text style={[styles.menuNavItemText, { color: "#FF3B30" }]}>Chiqish</Text>
                 </TouchableOpacity>
               </>
             ) : (
-              <TouchableOpacity style={styles.menuItem} onPress={navigateToLogin}>
+              <TouchableOpacity style={styles.menuNavItem} onPress={navigateToLogin}>
                 <Ionicons name="log-in-outline" size={20} color={Colors[colorScheme ?? 'light'].tint} />
-                <Text style={[styles.menuItemText, { color: Colors[colorScheme ?? 'light'].tint }]}>Kirish</Text>
+                <Text style={[styles.menuNavItemText, { color: Colors[colorScheme ?? 'light'].tint }]}>Kirish</Text>
               </TouchableOpacity>
             )}
           </View>
         </TouchableOpacity>
       </Modal>
-
-      <Tabs
-        screenOptions={{
-          tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-          headerShown: true,
-          tabBarButton: HapticTab,
-          tabBarBackground: TabBarBackground,
-          tabBarStyle: Platform.select({
-            ios: {
-              // Use a transparent background on iOS to show the blur effect
-              position: 'absolute',
+      <View style={{ flex: 1, backgroundColor: Colors[colorScheme ?? 'light'].background }}>
+        <Tabs
+          screenOptions={{
+            tabBarActiveTintColor: '#2B9CFF',
+            tabBarInactiveTintColor: Colors[colorScheme ?? 'light'].tabIconDefault,
+            headerShown: true,
+            tabBarShowLabel: true,
+            tabBarActiveBackgroundColor: Colors[colorScheme ?? 'light'].background,
+            tabBarInactiveBackgroundColor: Colors[colorScheme ?? 'light'].background,
+            tabBarBackground: () => (
+              <View style={{ backgroundColor: Colors[colorScheme ?? 'light'].background }} />
+            ),
+            tabBarStyle: {
+              backgroundColor: Colors[colorScheme ?? 'light'].background,
+              height: 60,
+              borderTopWidth: 0,
+              borderRadius: 20,
+              marginHorizontal: 16,
+              marginBottom: 8,
+              // position: 'absolute',
+              // bottom: 0,
+              // left: 0,
+              // right: 0,
+              elevation: 6,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 3 },
+              shadowOpacity: 0.15,
+              shadowRadius: 4,
+              paddingBottom: 5,
+              paddingTop: 5,
             },
-            default: {},
-          }),
-          // Header'ga profil tugmasini qo'shish
-          headerRight: () => (
-            <TouchableOpacity 
-              onPress={toggleMenu} 
-              style={{ marginRight: 15 }}
-            >
-              {isUserLoggedIn ? (
-                <View style={styles.profileButton}>
-                  <Text style={styles.profileButtonText}>{userInfo?.name?.charAt(0) || userInfo?.email?.charAt(0) || 'U'}</Text>
+            tabBarLabelStyle: {
+              fontSize: 12,
+              fontWeight: '500',
+              marginTop: -5,
+            },
+            tabBarItemStyle: {
+              marginHorizontal: 5,
+            },
+            // Header'ga profil tugmasini qo'shish
+            headerRight: () => (
+              <TouchableOpacity
+                onPress={toggleMenu}
+                style={{ marginRight: 15 }}
+              >
+                {isUserLoggedIn ? (
+                  <View style={styles.profileButton}>
+                    <Text style={styles.profileButtonText}>{userInfo?.name?.charAt(0) || userInfo?.email?.charAt(0) || 'U'}</Text>
+                  </View>
+                ) : (
+                  <Ionicons name="person-circle-outline" size={24} color={Colors[colorScheme ?? 'light'].text} />
+                )}
+              </TouchableOpacity>
+            ),
+          }}
+        >
+          <Tabs.Screen
+            name="index"
+            options={{
+              title: 'Asosiy',
+              tabBarIcon: ({ color, focused }) => (
+                <View style={[styles.tabIconContainer, focused && styles.activeTabIconContainer]}>
+                  <Ionicons name="home" size={24} color={color} />
                 </View>
-              ) : (
-                <Ionicons name="person-circle-outline" size={24} color={Colors[colorScheme ?? 'light'].text} />
-              )}
-            </TouchableOpacity>
-          ),
-        }}
-      >
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: 'Home',
-            tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="chat"
-          options={{
-            title: 'AI Chat',
-            tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="history"
-          options={{
-            title: 'History',
-            tabBarIcon: ({ color }) => <IconSymbol size={28} name="clock.fill" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="explore"
-          options={{
-            title: 'Explore',
-            tabBarIcon: ({ color }) => <IconSymbol size={28} name="magnifyingglass" color={color} />,
-          }}
-        />
-      </Tabs>
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="chat"
+            options={{
+              title: 'Chat',
+              tabBarIcon: ({ color, focused }) => (
+                <View style={[styles.tabIconContainer, focused && styles.activeTabIconContainer]}>
+                  <Ionicons name="chatbox" size={24} color={color} />
+                </View>
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="history"
+            options={{
+              title: 'Tarix',
+              tabBarIcon: ({ color, focused }) => (
+                <View style={[styles.tabIconContainer, focused && styles.activeTabIconContainer]}>
+                  <Ionicons name="time" size={24} color={color} />
+                </View>
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="explore"
+            options={{
+              title: 'Qidiruv',
+              tabBarIcon: ({ color, focused }) => (
+                <View style={[styles.tabIconContainer, focused && styles.activeTabIconContainer]}>
+                  <Ionicons name="search" size={24} color={color} />
+                </View>
+              ),
+            }}
+          />
+        </Tabs>
+      </View>
     </>
   );
 }
