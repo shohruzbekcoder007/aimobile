@@ -1,20 +1,27 @@
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+import { getChatHistory, streamChatResponse } from '@/services/chatApi';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import Markdown from 'react-native-markdown-display';
 import { SafeAreaView } from 'react-native-safe-area-context';
-// Using a simple function to generate IDs instead of uuid which requires crypto.getRandomValues()
-
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { getChatHistory, streamChatResponse } from '@/services/chatApi';
 
 interface Message {
-  id: string;
+  chat_id: string;
   text: string;
   isUser: boolean;
   timestamp: Date;
+}
+
+function sanitizeToMarkdown(text: string): string {
+  return text
+    .replace(/<b>|<\/b>/gi, '**')
+    .replace(/<i>|<\/i>/gi, '*')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/?[^>]+(>|$)/g, ""); // boshqa HTML teglardan tozalaydi
 }
 
 export default function TabChatScreen() {
@@ -24,60 +31,40 @@ export default function TabChatScreen() {
   const [chatId, setChatId] = useState<string>('');
   const flatListRef = useRef<FlatList>(null);
 
-  // Generate a simple unique ID based on timestamp and random number
-  const generateId = () => {
-    return `id-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-  };
+  const generateId = () => `id-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
   useEffect(() => {
-    // Initialize chat
     initChat();
   }, []);
-  
-  // Initialize chat ID when component mounts
+
   const initChat = async () => {
     try {
       let storedChatId = await AsyncStorage.getItem('currentChatId');
-      
       if (!storedChatId) {
         storedChatId = generateId();
         await AsyncStorage.setItem('currentChatId', storedChatId);
       }
-      
       setChatId(storedChatId || '');
-      
-      // Oldingi xabarlarni yuklash
-      if (storedChatId) {
-        loadChatHistory(storedChatId);
-      }
+      if (storedChatId) loadChatHistory(storedChatId);
     } catch (error) {
       console.error('Error initializing chat:', error);
-      // If there's an error, still set a default chat ID
       setChatId(generateId());
     }
   };
-  
-  // Oldingi xabarlarni yuklash funksiyasi
+
   const loadChatHistory = async (chatId: string) => {
     try {
       setIsLoading(true);
       const response = await getChatHistory(chatId);
-      
       if (response.messages && Array.isArray(response.messages)) {
-        // API dan kelgan xabarlarni formatlab olish
         const formattedMessages = response.messages.map((msg: any) => ({
-          id: msg.id || generateId(),
+          chat_id: msg.id || generateId(),
           text: msg.content || msg.text,
           isUser: msg.role === 'user',
           timestamp: new Date(msg.timestamp || Date.now())
         }));
-        
         setMessages(formattedMessages);
-        
-        // Scroll to bottom
-        setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: false });
-        }, 200);
+        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 200);
       } else if (response.error) {
         console.error('Error loading chat history:', response.error);
       }
@@ -92,106 +79,88 @@ export default function TabChatScreen() {
     if (!inputText.trim() || isLoading) return;
 
     const userMessage: Message = {
-      id: generateId(),
+      chat_id: generateId(),
       text: inputText.trim(),
       isUser: true,
       timestamp: new Date(),
     };
 
-    setMessages(prevMessages => [...prevMessages, userMessage]);
+    setMessages(prev => [...prev, userMessage]);
     setInputText('');
     setIsLoading(true);
-
-    // Scroll to bottom
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    }, 100);
+    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
 
     try {
-      // Avval bo'sh xabar yaratish
       const botMessageId = generateId();
       const initialBotMessage: Message = {
-        id: botMessageId,
-        text: "", // Bo'sh xabar, stream bilan to'ldiriladi
+        chat_id: botMessageId,
+        text: "",
         isUser: false,
         timestamp: new Date(),
       };
-      
-      setMessages(prevMessages => [...prevMessages, initialBotMessage]);
-      
-      // To'g'ridan-to'g'ri /chat/stream endpointiga so'rov yuborish
-      try {
-        await streamChatResponse(
-          userMessage.text,
-          // Har bir chunk kelganda xabarni yangilash
-          (chunk) => {
-            setMessages(prevMessages => {
-              const updatedMessages = [...prevMessages];
-              const botMessageIndex = updatedMessages.findIndex(msg => msg.id === botMessageId);
-              
-              if (botMessageIndex !== -1) {
-                // Mavjud xabarni yangilash
-                updatedMessages[botMessageIndex] = {
-                  ...updatedMessages[botMessageIndex],
-                  text: updatedMessages[botMessageIndex].text + chunk
-                };
-              }
-              
-              return updatedMessages;
-            });
-            
-            // Scroll to bottom
-            setTimeout(() => {
-              flatListRef.current?.scrollToEnd({ animated: true });
-            }, 50);
-          },
-          // Javob to'liq kelganda
-          (fullResponse) => {
-            setIsLoading(false);
-          },
-          // Chat ID (ixtiyoriy)
-          chatId
-        );
-      } catch (streamError) {
-        console.error('Stream error:', streamError);
-        
-        // Update the bot message to show the error
-        setMessages(prevMessages => {
-          const updatedMessages = [...prevMessages];
-          const botMessageIndex = updatedMessages.findIndex(msg => msg.id === botMessageId);
+      setMessages(prev => [...prev, initialBotMessage]);
+
+      await streamChatResponse(
+        userMessage.text,
+        (chunk: string | any) => {
+          // Ensure chunk is a string
+          const chunkStr = typeof chunk === 'string' ? chunk : String(chunk);
           
-          if (botMessageIndex !== -1) {
-            updatedMessages[botMessageIndex] = {
-              ...updatedMessages[botMessageIndex],
-              text: "Xatolik yuz berdi. Iltimos, qayta urinib ko'ring."
-            };
-          }
-          
-          return updatedMessages;
-        });
-        
-        Alert.alert('Xato', 'Xabar yuborishda xatolik yuz berdi. Iltimos, qayta urinib ko\'ring.');
-        setIsLoading(false);
-      }
+          setMessages(prevMessages => {
+            const updated = [...prevMessages];
+            const index = updated.findIndex(msg => msg.chat_id === botMessageId);
+            if (index !== -1) {
+              updated[index] = {
+                ...updated[index],
+                text: updated[index].text + sanitizeToMarkdown(chunkStr),
+              };
+            }
+            return updated;
+          });
+          setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 50);
+        },
+        () => {
+          setIsLoading(false);
+        },
+        chatId
+      );
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Stream error:', error);
       Alert.alert('Xato', 'Xabar yuborishda xatolik yuz berdi. Iltimos, qayta urinib ko\'ring.');
+      setMessages(prev => {
+        const updated = [...prev];
+        const index = updated.findIndex(msg => !msg.isUser && msg.text === '');
+        if (index !== -1) {
+          updated[index] = {
+            ...updated[index],
+            text: "Xatolik yuz berdi. Iltimos, qayta urinib ko'ring."
+          };
+        }
+        return updated;
+      });
       setIsLoading(false);
     }
   };
 
-  const renderMessage = ({ item }: { item: Message }) => (
-    <ThemedView 
-      style={[
-        styles.messageBubble,
-        item.isUser ? styles.userBubble : styles.botBubble
-      ]}
-    >
-      <ThemedText style={item.isUser ? styles.userMessageText : styles.botMessageText}>
-        {item.text}
-      </ThemedText>
-    </ThemedView>
-  );
+  const renderMessage = ({ item }: { item: Message }) => {
+    // Ensure item.text is always a string to prevent Markdown component errors
+    const messageText = typeof item.text === 'string' ? item.text : String(item.text || '');
+    
+    return (
+      <ThemedView 
+        style={[
+          styles.messageBubble,
+          item.isUser ? styles.userBubble : styles.botBubble
+        ]}
+      >
+        {item.isUser ? (
+          <ThemedText style={styles.userMessageText}>{messageText}</ThemedText>
+        ) : (
+          <Markdown style={markdownStyles}>{messageText}</Markdown>
+        )}
+      </ThemedView>
+    );
+  };
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['left', 'right']}>
@@ -201,13 +170,12 @@ export default function TabChatScreen() {
           headerLargeTitle: true,
         }}
       />
-      
       <ThemedView style={styles.container}>
         <FlatList
           ref={flatListRef}
           data={messages}
           renderItem={renderMessage}
-          keyExtractor={item => item.id}
+          keyExtractor={(item, index) => String(index)}
           contentContainerStyle={styles.messagesList}
           ListEmptyComponent={
             <ThemedView style={styles.emptyContainer}>
@@ -217,7 +185,6 @@ export default function TabChatScreen() {
             </ThemedView>
           }
         />
-        
         <ThemedView style={styles.inputContainer}>
           <TextInput
             style={styles.textInput}
@@ -273,9 +240,6 @@ const styles = StyleSheet.create({
   userMessageText: {
     color: '#FFFFFF',
   },
-  botMessageText: {
-    color: '#000000',
-  },
   inputContainer: {
     flexDirection: 'row',
     padding: 10,
@@ -317,3 +281,22 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
 });
+
+const markdownStyles = {
+  body: {
+    color: '#000000',
+    fontSize: 15,
+  },
+  code_inline: {
+    backgroundColor: '#EFEFEF',
+    paddingHorizontal: 4,
+    borderRadius: 4,
+    fontFamily: 'Courier',
+  },
+  code_block: {
+    backgroundColor: '#E0E0E0',
+    padding: 10,
+    borderRadius: 6,
+    fontFamily: 'Courier',
+  },
+};

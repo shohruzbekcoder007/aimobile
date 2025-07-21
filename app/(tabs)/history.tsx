@@ -37,6 +37,7 @@ export default function TabHistoryScreen() {
       }
       
       const response = await getUserChats();
+      console.log(response, "<-response");
       if (response.success && response.chats) {
         setChats(response.chats);
       } else {

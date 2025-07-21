@@ -235,7 +235,7 @@ export const getChatHistory = async (chatId: string) => {
 
 export const getUserChats = async () => {
   try {
-    const response = await api.get('/api/chats');
+    const response = await api.get('/api/user-chats');
     return response.data;
   } catch (error: any) {
     console.error('Error getting user chats:', error);

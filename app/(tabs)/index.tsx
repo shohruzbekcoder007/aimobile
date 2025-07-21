@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
@@ -13,6 +13,7 @@ export default function HomeScreen() {
     <SafeAreaView style={{ flex: 1 }} edges={['left', 'right']}>
       <StatusBar style="auto" />
         <ThemedView style={styles.container}>
+        <ScrollView>
           <View style={styles.header}>
             <ThemedText style={styles.title}>AI Chatbot</ThemedText>
             <ThemedText style={styles.subtitle}>Chatbotwithui API bilan ishlaydi</ThemedText>
@@ -48,6 +49,7 @@ export default function HomeScreen() {
               Eslatma: Bu ilova chatbotwithui API serveriga ulanishni talab qiladi. Server manzilini services/chatApi.ts faylida API_URL oʻzgaruvchisida koʻrsating.
             </ThemedText>
           </ThemedView>
+        </ScrollView>
         </ThemedView>
     </SafeAreaView>
   );

@@ -19,7 +19,9 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.yourcompany.aichatbotnative",
-      "permissions": ["INTERNET"]
+      "permissions": [
+        "INTERNET"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -46,6 +48,7 @@
       "eas": {
         "projectId": "5e718119-a10b-46a9-9813-ed3d3ea26541"
       }
-    }
+    },
+    "owner": "shohruzbekcoder007"
   }
 }
