@@ -103,7 +103,7 @@ export default function TabHistoryScreen() {
         ) : (
           <FlatList
             data={chats}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(_, index) => index.toString()}
             renderItem={({ item }) => (
               <TouchableOpacity
                 style={styles.chatItem}
