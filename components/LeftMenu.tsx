@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useContext, useEffect, useRef } from 'react';
-import { Animated, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { LeftMenuContext } from '@/app/_layout';
 import { ThemedText } from '@/components/ThemedText';
@@ -17,7 +17,14 @@ interface LeftMenuProps {
   formatDate?: (dateString: string) => string;
 }
 
+const ITEMS_PER_PAGE = 10;
+
 export default function LeftMenu({ isUserLoggedIn, userInfo, chats = [], formatDate }: LeftMenuProps) {
+  const [page, setPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [displayedChats, setDisplayedChats] = useState<Chat[]>([]);
+  const [hasMore, setHasMore] = useState(true);
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
   const { leftMenuVisible, toggleLeftMenu } = useContext(LeftMenuContext);
@@ -30,6 +37,10 @@ export default function LeftMenu({ isUserLoggedIn, userInfo, chats = [], formatD
         duration: 300,
         useNativeDriver: true,
       }).start();
+      // Reset pagination when menu opens
+      setPage(1);
+      setDisplayedChats(chats.slice(0, ITEMS_PER_PAGE));
+      setHasMore(chats.length > ITEMS_PER_PAGE);
     } else {
       Animated.timing(leftMenuAnim, {
         toValue: -300,
@@ -37,7 +48,59 @@ export default function LeftMenu({ isUserLoggedIn, userInfo, chats = [], formatD
         useNativeDriver: true,
       }).start();
     }
-  }, [leftMenuVisible, leftMenuAnim]);
+  }, [leftMenuVisible, leftMenuAnim, chats]);
+
+  const loadMoreChats = useCallback(() => {
+    if (isLoading || !hasMore) return;
+    
+    setIsLoading(true);
+    const nextPage = page + 1;
+    const startIndex = (nextPage - 1) * ITEMS_PER_PAGE;
+    const newChats = chats.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    
+    if (newChats.length === 0) {
+      setHasMore(false);
+      setIsLoading(false);
+      return;
+    }
+    
+    setDisplayedChats(prev => [...prev, ...newChats]);
+    setPage(nextPage);
+    setIsLoading(false);
+  }, [page, isLoading, hasMore, chats]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setPage(1);
+    setDisplayedChats(chats.slice(0, ITEMS_PER_PAGE));
+    setHasMore(chats.length > ITEMS_PER_PAGE);
+    setRefreshing(false);
+  }, [chats]);
+
+  const renderFooter = () => {
+    if (!isLoading) return null;
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="small" color={theme.tint} />
+      </View>
+    );
+  };
+
+  const renderChatItem = ({ item }: { item: Chat }) => (
+    <TouchableOpacity
+      key={item.id}
+      style={styles.historyNavButton}
+      onPress={() => handleChatPress(item.id)}
+    >
+      <Ionicons name="chatbubble-outline" size={20} color={theme.text} />
+      <ThemedText style={styles.menuItemText} numberOfLines={1}>
+        {item.name || 'Chat #' + item.id.substring(0, 6)}
+      </ThemedText>
+      <ThemedText style={styles.chatDate}>
+        {formatChatDate(item.created_at)}
+      </ThemedText>
+    </TouchableOpacity>
+  );
 
   const handleNewChat = () => {
     toggleLeftMenu();
@@ -78,7 +141,7 @@ export default function LeftMenu({ isUserLoggedIn, userInfo, chats = [], formatD
           { backgroundColor: theme.background }
         ]}
       >
-        <ScrollView>
+        <View style={styles.container}>
           <ThemedView style={styles.leftMenuHeader}>
             <ThemedText style={styles.leftMenuTitle}>AI Chat Assistant</ThemedText>
             <TouchableOpacity onPress={toggleLeftMenu}>
@@ -100,17 +163,15 @@ export default function LeftMenu({ isUserLoggedIn, userInfo, chats = [], formatD
                 </ThemedText>
               </>
             ) : (
-              <>
-                <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-                  <ThemedText style={styles.loginButtonText}>Login</ThemedText>
-                </TouchableOpacity>
-              </>
+              <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+                <ThemedText style={styles.loginButtonText}>Login</ThemedText>
+              </TouchableOpacity>
             )}
           </ThemedView>
 
           <View style={styles.menuSeparator} />
 
-          {/* Yangidan chat boshlash tugmasi */}
+          {/* New chat button */}
           <TouchableOpacity style={styles.newChatButton} onPress={handleNewChat}>
             <Ionicons name="add-circle-outline" size={22} color={theme.tint} />
             <ThemedText style={styles.newChatText}>Yangi chat boshlash</ThemedText>
@@ -118,28 +179,47 @@ export default function LeftMenu({ isUserLoggedIn, userInfo, chats = [], formatD
 
           {/* Chat history list */}
           <ThemedText style={{ marginLeft: 16, marginVertical: 8, fontWeight: '500' }}>Suhbatlar tarixi</ThemedText>
-          {chats.map((chat) => (
-            <TouchableOpacity
-              key={chat.id}
-              style={styles.historyNavButton}
-              onPress={() => handleChatPress(chat.id)}
-            >
-              <Ionicons name="chatbubble-outline" size={20} color={theme.text} />
-              <ThemedText style={styles.menuItemText} numberOfLines={1}>
-                {chat.name || 'Chat #' + chat.id.substring(0, 6)}
-              </ThemedText>
-              <ThemedText style={styles.chatDate}>
-                {formatChatDate(chat.created_at)}
-              </ThemedText>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+          
+          <FlatList
+            data={displayedChats}
+            renderItem={renderChatItem}
+            keyExtractor={(item) => item.id}
+            style={styles.chatList}
+            contentContainerStyle={styles.chatListContent}
+            onEndReached={loadMoreChats}
+            onEndReachedThreshold={0.1}
+            ListFooterComponent={renderFooter}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={[theme.tint]}
+                tintColor={theme.tint}
+              />
+            }
+          />
+        </View>
       </Animated.View>
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    width: '100%',
+  },
+  chatList: {
+    flex: 1,
+    width: '100%',
+  },
+  chatListContent: {
+    paddingBottom: 20,
+  },
+  loadingContainer: {
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
   menuOverlay: {
     position: 'absolute',
     top: 0,
