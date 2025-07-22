@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    paddingTop: 20,
+    paddingTop: 30,
   },
   leftMenuTitle: {
     fontSize: 18,

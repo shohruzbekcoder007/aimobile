@@ -1,10 +1,10 @@
-import { getUserInfo, isLoggedIn, logoutUser, getUserChats } from '@/services/chatApi';
 import { LeftMenuContext } from '@/app/_layout';
 import LeftMenu from '@/components/LeftMenu';
+import { getUserChats, getUserInfo, isLoggedIn } from '@/services/chatApi';
 import { Ionicons } from '@expo/vector-icons';
-import { router, Tabs } from 'expo-router';
+import { Tabs } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -156,21 +156,6 @@ export default function TabLayout() {
     checkLoginStatus();
   }, []);
 
-  // Login ekraniga o'tish funksiyasi
-  const navigateToLogin = () => {
-    setMenuVisible(false);
-    router.push('/login');
-  };
-
-  // Tizimdan chiqish funksiyasi
-  const handleLogout = async () => {
-    await logoutUser();
-    setUserInfo(null);
-    setIsUserLoggedIn(false);
-    setMenuVisible(false);
-    router.replace('/');
-  };
-
   // Foydalanuvchi menyusini ochish/yopish
   const toggleMenu = () => {
     setMenuVisible(!menuVisible);
@@ -178,48 +163,7 @@ export default function TabLayout() {
 
   return (
     <>
-      <Modal
-        transparent={true}
-        visible={menuVisible}
-        animationType="fade"
-        onRequestClose={() => setMenuVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setMenuVisible(false)}
-        >
-          <View style={[styles.menuContainer, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
-            {isUserLoggedIn && userInfo ? (
-              <>
-                <View style={styles.userInfoContainer}>
-                  <Text style={[styles.userName, { color: Colors[colorScheme ?? 'light'].text }]}>{userInfo.name || userInfo.email}</Text>
-                  <Text style={[styles.userStatus, { color: Colors[colorScheme ?? 'light'].tabIconDefault }]}>Aktiv foydalanuvchi</Text>
-                </View>
 
-                <TouchableOpacity style={styles.menuNavItem} onPress={() => {
-                  setMenuVisible(false);
-                  // Sozlamalar sahifasi mavjud bo'lsa o'tish
-                  router.push('/');
-                }}>
-                  <Ionicons name="settings-outline" size={20} color={Colors[colorScheme ?? 'light'].tabIconDefault} />
-                  <Text style={[styles.menuNavItemText, { color: Colors[colorScheme ?? 'light'].text }]}>Sozlamalar</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.menuNavItem} onPress={handleLogout}>
-                  <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
-                  <Text style={[styles.menuNavItemText, { color: "#FF3B30" }]}>Chiqish</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <TouchableOpacity style={styles.menuNavItem} onPress={navigateToLogin}>
-                <Ionicons name="log-in-outline" size={20} color={Colors[colorScheme ?? 'light'].tint} />
-                <Text style={[styles.menuNavItemText, { color: Colors[colorScheme ?? 'light'].tint }]}>Kirish</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </TouchableOpacity>
-      </Modal>
       <View style={{ flex: 1, backgroundColor: Colors[colorScheme ?? 'light'].background }}>
         {/* LeftMenu komponentini barcha tablar uchun qo'shish */}
         <LeftMenu 
@@ -293,7 +237,7 @@ export default function TabLayout() {
           <Tabs.Screen
             name="index"
             options={{
-              title: 'Asosiy',
+              title: '',
               tabBarIcon: ({ color, focused }) => (
                 <View style={[styles.tabIconContainer, focused && styles.activeTabIconContainer]}>
                   <Ionicons name="home" size={24} color={color} />
@@ -304,7 +248,7 @@ export default function TabLayout() {
           <Tabs.Screen
             name="chat"
             options={{
-              title: 'Chat',
+              title: '',
               tabBarIcon: ({ color, focused }) => (
                 <View style={[styles.tabIconContainer, focused && styles.activeTabIconContainer]}>
                   <Ionicons name="chatbox" size={24} color={color} />
@@ -313,20 +257,9 @@ export default function TabLayout() {
             }}
           />
           <Tabs.Screen
-            name="history"
-            options={{
-              title: 'Tarix',
-              tabBarIcon: ({ color, focused }) => (
-                <View style={[styles.tabIconContainer, focused && styles.activeTabIconContainer]}>
-                  <Ionicons name="time" size={24} color={color} />
-                </View>
-              ),
-            }}
-          />
-          <Tabs.Screen
             name="explore"
             options={{
-              title: 'Qidiruv',
+              title: '',
               tabBarIcon: ({ color, focused }) => (
                 <View style={[styles.tabIconContainer, focused && styles.activeTabIconContainer]}>
                   <Ionicons name="search" size={24} color={color} />
