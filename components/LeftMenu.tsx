@@ -183,7 +183,7 @@ export default function LeftMenu({ isUserLoggedIn, userInfo, chats = [], formatD
           <FlatList
             data={displayedChats}
             renderItem={renderChatItem}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(_, index) => String(index)}
             style={styles.chatList}
             contentContainerStyle={styles.chatListContent}
             onEndReached={loadMoreChats}

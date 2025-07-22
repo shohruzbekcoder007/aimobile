@@ -1,17 +1,15 @@
+import { LeftMenuContext } from '@/app/_layout';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { Colors } from '@/constants/Colors';
-import LeftMenu from '@/components/LeftMenu';
-import { LeftMenuContext } from '@/app/_layout';
+import { useColorScheme } from '@/hooks/useColorScheme';
 import { getChatHistory, getChatId, getUserChats, getUserInfo, isLoggedIn, streamChatResponse } from '@/services/chatApi';
 import { Chat } from '@/types/chat';
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, router } from 'expo-router';
+import { Stack } from 'expo-router';
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Dimensions, FlatList, Modal, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import Markdown from 'react-native-markdown-display';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useColorScheme } from '@/hooks/useColorScheme';
 
 interface Message {
   chat_id: string;
@@ -34,18 +32,12 @@ export default function TabChatScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [chatId, setChatId] = useState<string>('');
   const flatListRef = useRef<FlatList>(null);
-  const [chats, setChats] = useState<Chat[]>([]);
-  const [userInfo, setUserInfo] = useState<any>(null);
-  const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
-  const colorScheme = useColorScheme();
-  const { leftMenuVisible } = useContext(LeftMenuContext);
 
   const generateId = () => `id-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
   useEffect(() => {
     initChat();
     checkLoginStatus();
-    loadChatsList();
   }, []);
 
   const initChat = async () => {
@@ -168,40 +160,6 @@ export default function TabChatScreen() {
 
   const checkLoginStatus = async () => {
     const loggedIn = await isLoggedIn();
-    setIsUserLoggedIn(loggedIn);
-
-    if (loggedIn) {
-      const info = await getUserInfo();
-      setUserInfo(info);
-    }
-  };
-
-  const loadChatsList = async () => {
-    try {
-      const loggedIn = await isLoggedIn();
-      if (!loggedIn) return;
-
-      const response = await getUserChats();
-      if (response.success && response.chats) {
-        setChats(response.chats);
-      }
-    } catch (err) {
-      console.error('Failed to load chats:', err);
-    }
-  };
-
-  const handleChatPress = (selectedChatId: string) => {
-    setChatId(selectedChatId);
-    loadChatHistory(selectedChatId);
-  };
-
-  const handleNewChat = () => {
-    initChat();
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
   
   return (
@@ -212,13 +170,6 @@ export default function TabChatScreen() {
         }}
       />
       <ThemedView style={styles.container}>
-        {/* Chap menu (alohida komponent) */}
-        <LeftMenu 
-          isUserLoggedIn={isUserLoggedIn} 
-          userInfo={userInfo} 
-          chats={chats} 
-          formatDate={formatDate} 
-        />
         <FlatList
           ref={flatListRef}
           data={messages}
