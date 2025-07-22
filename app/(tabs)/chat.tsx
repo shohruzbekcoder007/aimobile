@@ -1,12 +1,15 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { getChatHistory, getChatId, streamChatResponse } from '@/services/chatApi';
+import { Colors } from '@/constants/Colors';
+import { getChatHistory, getChatId, getUserChats, getUserInfo, isLoggedIn, streamChatResponse } from '@/services/chatApi';
+import { Chat } from '@/types/chat';
 import { Ionicons } from '@expo/vector-icons';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Dimensions, FlatList, Modal, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import Markdown from 'react-native-markdown-display';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useColorScheme } from '@/hooks/useColorScheme';
 
 interface Message {
   chat_id: string;
@@ -29,11 +32,19 @@ export default function TabChatScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [chatId, setChatId] = useState<string>('');
   const flatListRef = useRef<FlatList>(null);
+  const [leftMenuVisible, setLeftMenuVisible] = useState(false);
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [userInfo, setUserInfo] = useState<any>(null);
+  const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
+  const leftMenuAnim = useRef(new Animated.Value(-300)).current;
+  const colorScheme = useColorScheme();
 
   const generateId = () => `id-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
   useEffect(() => {
     initChat();
+    checkLoginStatus();
+    loadChatsList();
   }, []);
 
   const initChat = async () => {
@@ -154,15 +165,168 @@ export default function TabChatScreen() {
     );
   };
 
+  const toggleLeftMenu = () => {
+    if (leftMenuVisible) {
+      // Menu yopish animatsiyasi
+      Animated.timing(leftMenuAnim, {
+        toValue: -300,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => setLeftMenuVisible(false));
+    } else {
+      setLeftMenuVisible(true);
+      // Menu ochish animatsiyasi
+      Animated.timing(leftMenuAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    }
+  };
+
+  const checkLoginStatus = async () => {
+    const loggedIn = await isLoggedIn();
+    setIsUserLoggedIn(loggedIn);
+
+    if (loggedIn) {
+      const info = await getUserInfo();
+      setUserInfo(info);
+    }
+  };
+
+  const loadChatsList = async () => {
+    try {
+      const loggedIn = await isLoggedIn();
+      if (!loggedIn) return;
+
+      const response = await getUserChats();
+      if (response.success && response.chats) {
+        setChats(response.chats);
+      }
+    } catch (err) {
+      console.error('Failed to load chats:', err);
+    }
+  };
+
+  const handleChatPress = (selectedChatId: string) => {
+    setChatId(selectedChatId);
+    loadChatHistory(selectedChatId);
+    toggleLeftMenu();
+  };
+
+  const handleNewChat = () => {
+    initChat();
+    toggleLeftMenu();
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+  
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['left', 'right']}>
       <Stack.Screen
         options={{
           title: 'AI Chat',
           headerLargeTitle: true,
+          headerLeft: () => (
+            <TouchableOpacity onPress={toggleLeftMenu}>
+              <Ionicons name="menu-outline" size={24} color={Colors[colorScheme ?? 'light'].text} />
+            </TouchableOpacity>
+          ),
         }}
       />
       <ThemedView style={styles.container}>
+        {/* Chap menu */}
+        {leftMenuVisible && (
+          <TouchableOpacity
+            style={styles.menuOverlay}
+            activeOpacity={1}
+            onPress={toggleLeftMenu}
+          />
+        )}
+        <Animated.View
+          style={[
+            styles.leftMenu,
+            { transform: [{ translateX: leftMenuAnim }] },
+            { backgroundColor: Colors[colorScheme ?? 'light'].background }
+          ]}
+        >
+          <ScrollView>
+            <ThemedView style={styles.leftMenuHeader}>
+              <ThemedText style={styles.leftMenuTitle}>AI Chat Assistant</ThemedText>
+              <TouchableOpacity onPress={toggleLeftMenu}>
+                <Ionicons name="close-outline" size={24} color={Colors[colorScheme ?? 'light'].text} />
+              </TouchableOpacity>
+            </ThemedView>
+
+            {/* Account section */}
+            <ThemedView style={styles.accountSection}>
+              {isUserLoggedIn ? (
+                <>
+                  <View style={styles.accountAvatar}>
+                    <ThemedText style={styles.avatarText}>
+                      {userInfo?.name?.charAt(0) || userInfo?.email?.charAt(0) || 'U'}
+                    </ThemedText>
+                  </View>
+                  <ThemedText style={styles.accountName}>
+                    {userInfo?.name || userInfo?.email || 'Foydalanuvchi'}
+                  </ThemedText>
+                </>
+              ) : (
+                <TouchableOpacity
+                  style={styles.loginButton}
+                  onPress={() => {
+                    toggleLeftMenu();
+                    router.push('/login');
+                  }}
+                >
+                  <ThemedText style={styles.loginButtonText}>Kirish</ThemedText>
+                </TouchableOpacity>
+              )}
+            </ThemedView>
+
+            <ThemedView style={styles.menuSeparator} />
+
+            {/* New Chat button */}
+            <TouchableOpacity
+              style={styles.newChatButton}
+              onPress={handleNewChat}
+            >
+              <Ionicons name="add-circle-outline" size={20} color={Colors[colorScheme ?? 'light'].tint} />
+              <ThemedText style={[styles.newChatText, {color: Colors[colorScheme ?? 'light'].tint}]}>
+                Yangi chat boshlash
+              </ThemedText>
+            </TouchableOpacity>
+
+            {/* Chat history list */}
+            <ThemedText style={styles.historyTitle}>Chat tarixi</ThemedText>
+            {chats.length > 0 ? (
+              chats.map((chat) => (
+                <TouchableOpacity
+                  key={chat.id}
+                  style={[styles.historyItem, chat.id === chatId && styles.activeHistoryItem]}
+                  onPress={() => handleChatPress(chat.id)}
+                >
+                  <Ionicons name="chatbubble-outline" size={18} color={Colors[colorScheme ?? 'light'].text} />
+                  <ThemedView style={styles.historyItemContent}>
+                    <ThemedText style={styles.historyItemName} numberOfLines={1}>
+                      {chat.name}
+                    </ThemedText>
+                    <ThemedText style={styles.historyItemDate}>
+                      {formatDate(chat.updated_at)}
+                    </ThemedText>
+                  </ThemedView>
+                </TouchableOpacity>
+              ))
+            ) : (
+              <ThemedText style={styles.emptyHistoryText}>
+                Hech qanday chat tarixi yo'q
+              </ThemedText>
+            )}
+          </ScrollView>
+        </Animated.View>
         <FlatList
           ref={flatListRef}
           data={messages}
@@ -209,6 +373,126 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  menuOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 1,
+  },
+  leftMenu: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: 280,
+    height: '100%',
+    zIndex: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 2, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 10,
+  },
+  leftMenuHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    paddingTop: 20,
+  },
+  leftMenuTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  accountSection: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  accountAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#2B68E6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  avatarText: {
+    color: 'white',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  accountName: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  loginButton: {
+    backgroundColor: '#2B68E6',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  loginButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  menuSeparator: {
+    height: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    marginVertical: 10,
+    marginHorizontal: 16,
+  },
+  newChatButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: 'rgba(43, 104, 230, 0.1)',
+    marginHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  newChatText: {
+    marginLeft: 8,
+    fontWeight: '500',
+  },
+  historyTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 16,
+    marginBottom: 8,
+  },
+  historyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginHorizontal: 10,
+    marginVertical: 4,
+  },
+  activeHistoryItem: {
+    backgroundColor: 'rgba(43, 104, 230, 0.1)',
+  },
+  historyItemContent: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  historyItemName: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  historyItemDate: {
+    fontSize: 12,
+    opacity: 0.6,
+  },
+  emptyHistoryText: {
+    textAlign: 'center',
+    marginTop: 20,
+    opacity: 0.6,
+  },
+  
   messagesList: {
     flexGrow: 1,
     padding: 16,
