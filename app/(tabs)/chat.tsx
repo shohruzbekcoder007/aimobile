@@ -1,8 +1,7 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { getChatHistory, streamChatResponse } from '@/services/chatApi';
+import { getChatHistory, getChatId, streamChatResponse } from '@/services/chatApi';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
@@ -38,18 +37,11 @@ export default function TabChatScreen() {
   }, []);
 
   const initChat = async () => {
-    try {
-      let storedChatId = await AsyncStorage.getItem('currentChatId');
-      if (!storedChatId) {
-        storedChatId = generateId();
-        await AsyncStorage.setItem('currentChatId', storedChatId);
-      }
-      setChatId(storedChatId || '');
-      if (storedChatId) loadChatHistory(storedChatId);
-    } catch (error) {
-      console.error('Error initializing chat:', error);
-      setChatId(generateId());
-    }
+    const response = await getChatId();
+    const chat_id = response;
+    console.log(chat_id, "<-response");
+    setChatId(chat_id || '');
+    loadChatHistory(chat_id);
   };
 
   const loadChatHistory = async (chatId: string) => {
@@ -79,7 +71,7 @@ export default function TabChatScreen() {
     if (!inputText.trim() || isLoading) return;
 
     const userMessage: Message = {
-      chat_id: generateId(),
+      chat_id: chatId,
       text: inputText.trim(),
       isUser: true,
       timestamp: new Date(),

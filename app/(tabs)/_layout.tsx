@@ -209,7 +209,7 @@ export default function TabLayout() {
       <View style={{ flex: 1, backgroundColor: Colors[colorScheme ?? 'light'].background }}>
         <Tabs
           screenOptions={{
-            tabBarActiveTintColor: '#2B9CFF',
+            tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
             tabBarInactiveTintColor: Colors[colorScheme ?? 'light'].tabIconDefault,
             headerShown: true,
             tabBarShowLabel: true,

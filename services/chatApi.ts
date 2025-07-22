@@ -233,6 +233,16 @@ export const getChatHistory = async (chatId: string) => {
   }
 };
 
+export const getChatId = async () => {
+  try {
+    const response = await api.get('/idmobile');
+    return response.data.chat_id;
+  } catch (error: any) {
+    console.error('Error getting chat ID:', error);
+    return null;
+  }
+};
+
 export const getUserChats = async () => {
   try {
     const response = await api.get('/api/user-chats');
