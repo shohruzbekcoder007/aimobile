@@ -1,7 +1,8 @@
 import { getUserInfo, isLoggedIn, logoutUser } from '@/services/chatApi';
+import { LeftMenuContext } from '@/app/_layout';
 import { Ionicons } from '@expo/vector-icons';
 import { router, Tabs } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Colors } from '@/constants/Colors';
@@ -125,6 +126,7 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   const [userInfo, setUserInfo] = useState<any>(null);
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
+  const { toggleLeftMenu, leftMenuVisible } = useContext(LeftMenuContext);
   const [menuVisible, setMenuVisible] = useState(false);
 
   // Foydalanuvchi ma'lumotlarini olish
@@ -225,10 +227,6 @@ export default function TabLayout() {
               borderRadius: 20,
               marginHorizontal: 16,
               marginBottom: 8,
-              // position: 'absolute',
-              // bottom: 0,
-              // left: 0,
-              // right: 0,
               elevation: 6,
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 3 },
@@ -245,7 +243,15 @@ export default function TabLayout() {
             tabBarItemStyle: {
               marginHorizontal: 5,
             },
-            // Header'ga profil tugmasini qo'shish
+            // Header'ga tugmalarni qo'shish
+            headerLeft: () => (
+              <TouchableOpacity
+                onPress={toggleLeftMenu}
+                style={{ marginLeft: 15 }}
+              >
+                <Ionicons name="menu-outline" size={24} color={Colors[colorScheme ?? 'light'].text} />
+              </TouchableOpacity>
+            ),
             headerRight: () => (
               <TouchableOpacity
                 onPress={toggleMenu}

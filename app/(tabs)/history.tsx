@@ -1,27 +1,43 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useContext, useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import LeftMenu from '@/components/LeftMenu';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { getUserChats, isLoggedIn } from '@/services/chatApi';
+import { getUserChats, getUserInfo, isLoggedIn } from '@/services/chatApi';
 import { Chat } from '@/types/chat';
+import { LeftMenuContext } from '@/app/_layout';
 
 export default function TabHistoryScreen() {
   const [chats, setChats] = useState<Chat[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [userInfo, setUserInfo] = useState<any>(null);
+  const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
+  const { leftMenuVisible } = useContext(LeftMenuContext);
 
   useEffect(() => {
     // Load chats
     loadChats();
+    checkLoginStatus();
   }, []);
+  
+  const checkLoginStatus = async () => {
+    const loggedIn = await isLoggedIn();
+    setIsUserLoggedIn(loggedIn);
+
+    if (loggedIn) {
+      const info = await getUserInfo();
+      setUserInfo(info);
+    }
+  };
 
   const loadChats = async () => {
     try {
@@ -85,7 +101,6 @@ export default function TabHistoryScreen() {
     <SafeAreaView style={{ flex: 1 }} edges={['left', 'right']}>
       <Stack.Screen
         options={{
-          title: 'Chat History',
           headerLargeTitle: true,
           headerRight: () => (
             <TouchableOpacity onPress={handleNewChat}>
@@ -96,6 +111,13 @@ export default function TabHistoryScreen() {
       />
       
       <ThemedView style={styles.container}>
+        {/* Chap menu (alohida komponent) */}
+        <LeftMenu 
+          isUserLoggedIn={isUserLoggedIn} 
+          userInfo={userInfo} 
+          chats={chats} 
+          formatDate={formatDate} 
+        />
         {error ? (
           <ThemedView style={styles.errorContainer}>
             <ThemedText style={styles.errorText}>{error}</ThemedText>
@@ -127,7 +149,7 @@ export default function TabHistoryScreen() {
                   No chat history found. Start a new chat!
                 </ThemedText>
                 <TouchableOpacity
-                  style={styles.newChatButton}
+                  style={styles.emptyStateButton}
                   onPress={handleNewChat}
                 >
                   <ThemedText style={styles.newChatButtonText}>
@@ -186,7 +208,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     marginBottom: 20,
   },
-  newChatButton: {
+  emptyStateButton: {
     backgroundColor: '#2B68E6',
     paddingVertical: 12,
     paddingHorizontal: 20,
