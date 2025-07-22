@@ -9,16 +9,38 @@ import { useState, useRef, createContext, useContext } from 'react';
 import { TouchableOpacity, Animated } from 'react-native';
 import 'react-native-reanimated';
 
-// Create context for the left menu
-export const LeftMenuContext = createContext({
+// Define types for context
+export interface UserInfo {
+  name?: string;
+  email?: string;
+  // Add other user properties as needed
+}
+
+export interface LeftMenuContextType {
+  toggleLeftMenu: () => void;
+  leftMenuVisible: boolean;
+  isUserLoggedIn: boolean;
+  setIsUserLoggedIn: (value: boolean) => void;
+  userInfo: UserInfo | null;
+  setUserInfo: (info: UserInfo | null) => void;
+}
+
+// Create context for the left menu with default values
+export const LeftMenuContext = createContext<LeftMenuContextType>({
   toggleLeftMenu: () => {},
   leftMenuVisible: false,
+  isUserLoggedIn: false,
+  setIsUserLoggedIn: () => {},
+  userInfo: null,
+  setUserInfo: () => {}
 });
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const router = useRouter();
   const [leftMenuVisible, setLeftMenuVisible] = useState(false);
+  const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
@@ -41,7 +63,14 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <LeftMenuContext.Provider value={{ toggleLeftMenu, leftMenuVisible }}>
+      <LeftMenuContext.Provider value={{ 
+        toggleLeftMenu, 
+        leftMenuVisible, 
+        isUserLoggedIn, 
+        setIsUserLoggedIn,
+        userInfo,
+        setUserInfo 
+      }}>
         <Stack 
           screenOptions={{
             headerLeft: () => <LeftMenuButton />,
@@ -52,6 +81,7 @@ export default function RootLayout() {
         >
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="profile" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" />
         </Stack>
         <StatusBar style="auto" />

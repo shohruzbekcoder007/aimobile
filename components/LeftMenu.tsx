@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
 
-import { LeftMenuContext } from '@/app/_layout';
+import { LeftMenuContext, UserInfo } from '@/app/_layout';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
@@ -11,15 +11,13 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Chat } from '@/types/chat';
 
 interface LeftMenuProps {
-  isUserLoggedIn: boolean;
-  userInfo: any;
   chats?: Chat[];
   formatDate?: (dateString: string) => string;
 }
 
 const ITEMS_PER_PAGE = 10;
 
-export default function LeftMenu({ isUserLoggedIn, userInfo, chats = [], formatDate }: LeftMenuProps) {
+export default function LeftMenu({ chats = [], formatDate }: LeftMenuProps) {
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -27,9 +25,9 @@ export default function LeftMenu({ isUserLoggedIn, userInfo, chats = [], formatD
   const [hasMore, setHasMore] = useState(true);
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
-  const { leftMenuVisible, toggleLeftMenu } = useContext(LeftMenuContext);
+  const { leftMenuVisible, toggleLeftMenu, isUserLoggedIn, userInfo } = useContext(LeftMenuContext);
   const leftMenuAnim = useRef(new Animated.Value(-300)).current;
-  
+
   useEffect(() => {
     if (leftMenuVisible) {
       Animated.timing(leftMenuAnim, {
@@ -52,18 +50,18 @@ export default function LeftMenu({ isUserLoggedIn, userInfo, chats = [], formatD
 
   const loadMoreChats = useCallback(() => {
     if (isLoading || !hasMore) return;
-    
+
     setIsLoading(true);
     const nextPage = page + 1;
     const startIndex = (nextPage - 1) * ITEMS_PER_PAGE;
     const newChats = chats.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-    
+
     if (newChats.length === 0) {
       setHasMore(false);
       setIsLoading(false);
       return;
     }
-    
+
     setDisplayedChats(prev => [...prev, ...newChats]);
     setPage(nextPage);
     setIsLoading(false);
@@ -109,7 +107,7 @@ export default function LeftMenu({ isUserLoggedIn, userInfo, chats = [], formatD
 
   const handleChatPress = (chatId: string) => {
     toggleLeftMenu();
-    router.push({pathname: '/chat', params: {chatId}});
+    router.push({ pathname: '/chat', params: { chatId } });
   };
 
   const handleLogin = () => {
@@ -152,7 +150,13 @@ export default function LeftMenu({ isUserLoggedIn, userInfo, chats = [], formatD
           {/* Account section */}
           <ThemedView style={styles.accountSection}>
             {isUserLoggedIn ? (
-              <>
+              <TouchableOpacity
+                style={styles.accountButton}
+                onPress={() => {
+                  toggleLeftMenu();
+                  router.push('/profile');
+                }}
+              >
                 <View style={styles.accountAvatar}>
                   <ThemedText style={styles.avatarText}>
                     {userInfo?.name?.charAt(0) || userInfo?.email?.charAt(0) || 'U'}
@@ -161,7 +165,7 @@ export default function LeftMenu({ isUserLoggedIn, userInfo, chats = [], formatD
                 <ThemedText style={styles.accountName}>
                   {userInfo?.name || userInfo?.email || 'Foydalanuvchi'}
                 </ThemedText>
-              </>
+              </TouchableOpacity>
             ) : (
               <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
                 <ThemedText style={styles.loginButtonText}>Login</ThemedText>
@@ -179,7 +183,7 @@ export default function LeftMenu({ isUserLoggedIn, userInfo, chats = [], formatD
 
           {/* Chat history list */}
           <ThemedText style={{ marginLeft: 16, marginVertical: 8, fontWeight: '500' }}>Suhbatlar tarixi</ThemedText>
-          
+
           <FlatList
             data={displayedChats}
             renderItem={renderChatItem}
@@ -274,6 +278,10 @@ const styles = StyleSheet.create({
   accountName: {
     fontSize: 16,
     fontWeight: '500',
+  },
+  accountButton: {
+    alignItems: 'center',
+    width: '100%',
   },
   loginButton: {
     backgroundColor: '#2B68E6',

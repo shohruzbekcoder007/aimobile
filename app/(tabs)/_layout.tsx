@@ -4,7 +4,7 @@ import { getUserChats, getUserInfo, isLoggedIn } from '@/services/chatApi';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -125,10 +125,15 @@ const styles = StyleSheet.create({
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const [userInfo, setUserInfo] = useState<any>(null);
-  const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
   const [chats, setChats] = useState([]);
-  const { toggleLeftMenu, leftMenuVisible } = useContext(LeftMenuContext);
+  const { 
+    toggleLeftMenu, 
+    leftMenuVisible, 
+    userInfo, 
+    setUserInfo, 
+    isUserLoggedIn, 
+    setIsUserLoggedIn 
+  } = useContext(LeftMenuContext);
   const [menuVisible, setMenuVisible] = useState(false);
 
   // Foydalanuvchi ma'lumotlarini olish
@@ -154,7 +159,7 @@ export default function TabLayout() {
     };
 
     checkLoginStatus();
-  }, []);
+  }, [setIsUserLoggedIn, setUserInfo]); // Add context setters to dependencies
 
   // Foydalanuvchi menyusini ochish/yopish
   const toggleMenu = () => {
@@ -167,8 +172,6 @@ export default function TabLayout() {
       <View style={{ flex: 1, backgroundColor: Colors[colorScheme ?? 'light'].background }}>
         {/* LeftMenu komponentini barcha tablar uchun qo'shish */}
         <LeftMenu 
-          isUserLoggedIn={isUserLoggedIn} 
-          userInfo={userInfo} 
           chats={chats} 
           formatDate={(dateString) => {
             const date = new Date(dateString);
@@ -217,21 +220,7 @@ export default function TabLayout() {
               >
                 <Ionicons name="menu-outline" size={24} color={Colors[colorScheme ?? 'light'].text} />
               </TouchableOpacity>
-            ),
-            headerRight: () => (
-              <TouchableOpacity
-                onPress={toggleMenu}
-                style={{ marginRight: 15 }}
-              >
-                {isUserLoggedIn ? (
-                  <View style={styles.profileButton}>
-                    <Text style={styles.profileButtonText}>{userInfo?.name?.charAt(0) || userInfo?.email?.charAt(0) || 'U'}</Text>
-                  </View>
-                ) : (
-                  <Ionicons name="person-circle-outline" size={24} color={Colors[colorScheme ?? 'light'].text} />
-                )}
-              </TouchableOpacity>
-            ),
+            )
           }}
         >
           <Tabs.Screen
