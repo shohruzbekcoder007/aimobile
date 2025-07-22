@@ -1,5 +1,6 @@
-import { getUserInfo, isLoggedIn, logoutUser } from '@/services/chatApi';
+import { getUserInfo, isLoggedIn, logoutUser, getUserChats } from '@/services/chatApi';
 import { LeftMenuContext } from '@/app/_layout';
+import LeftMenu from '@/components/LeftMenu';
 import { Ionicons } from '@expo/vector-icons';
 import { router, Tabs } from 'expo-router';
 import React, { useContext, useEffect, useState } from 'react';
@@ -126,6 +127,7 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   const [userInfo, setUserInfo] = useState<any>(null);
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
+  const [chats, setChats] = useState([]);
   const { toggleLeftMenu, leftMenuVisible } = useContext(LeftMenuContext);
   const [menuVisible, setMenuVisible] = useState(false);
 
@@ -138,6 +140,16 @@ export default function TabLayout() {
       if (loggedIn) {
         const info = await getUserInfo();
         setUserInfo(info);
+        
+        // Chat tarixini olish
+        try {
+          const response = await getUserChats();
+          if (response.success && response.chats) {
+            setChats(response.chats);
+          }
+        } catch (err) {
+          console.error('Failed to load chats:', err);
+        }
       }
     };
 
@@ -209,6 +221,16 @@ export default function TabLayout() {
         </TouchableOpacity>
       </Modal>
       <View style={{ flex: 1, backgroundColor: Colors[colorScheme ?? 'light'].background }}>
+        {/* LeftMenu komponentini barcha tablar uchun qo'shish */}
+        <LeftMenu 
+          isUserLoggedIn={isUserLoggedIn} 
+          userInfo={userInfo} 
+          chats={chats} 
+          formatDate={(dateString) => {
+            const date = new Date(dateString);
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          }}
+        />
         <Tabs
           screenOptions={{
             tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,

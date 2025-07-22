@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    zIndex: 1,
+    zIndex: 9998,
   },
   leftMenu: {
     position: 'absolute',
@@ -155,12 +155,12 @@ const styles = StyleSheet.create({
     left: 0,
     width: 280,
     height: '100%',
-    zIndex: 2,
+    zIndex: 9999,
     shadowColor: '#000',
     shadowOffset: { width: 2, height: 0 },
     shadowOpacity: 0.3,
     shadowRadius: 5,
-    elevation: 10,
+    elevation: 20,
   },
   leftMenuHeader: {
     flexDirection: 'row',
