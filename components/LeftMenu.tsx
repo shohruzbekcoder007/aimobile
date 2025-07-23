@@ -23,10 +23,20 @@ export default function LeftMenu({ chats = [], formatDate }: LeftMenuProps) {
   const [refreshing, setRefreshing] = useState(false);
   const [displayedChats, setDisplayedChats] = useState<Chat[]>([]);
   const [hasMore, setHasMore] = useState(true);
+  const [activeChat, setActiveChat] = useState<string | null>(null);
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
   const { leftMenuVisible, toggleLeftMenu, isUserLoggedIn, userInfo } = useContext(LeftMenuContext);
   const leftMenuAnim = useRef(new Animated.Value(-300)).current;
+
+  // Check for active chat from URL when component mounts
+  useEffect(() => {
+    const url = window.location.href;
+    const match = url.match(/chatId=([^&]+)/);
+    if (match && match[1]) {
+      setActiveChat(match[1]);
+    }
+  }, []);
 
   useEffect(() => {
     if (leftMenuVisible) {
@@ -87,7 +97,10 @@ export default function LeftMenu({ chats = [], formatDate }: LeftMenuProps) {
   const renderChatItem = ({ item }: { item: Chat }) => (
     <TouchableOpacity
       key={item.id}
-      style={styles.historyNavButton}
+      style={[
+        styles.historyNavButton,
+        activeChat === item.chat_id && styles.activeHistoryNavButton
+      ]}
       onPress={() => handleChatPress(item.chat_id)}
     >
       <Ionicons name="chatbubble-outline" size={20} color={theme.text} />
@@ -107,6 +120,7 @@ export default function LeftMenu({ chats = [], formatDate }: LeftMenuProps) {
 
   const handleChatPress = (chatId: string) => {
     console.log(chatId, "<-chatId");
+    setActiveChat(chatId);
     toggleLeftMenu();
     router.replace(`/(tabs)/chat?chatId=${chatId}`);
     // router.push({ pathname: '/chat', params: { chatId } });
@@ -331,5 +345,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     opacity: 0.6,
     marginLeft: 4,
+  },
+  activeHistoryNavButton: {
+    backgroundColor: 'rgba(43, 104, 230, 0.2)',
+    borderLeftWidth: 3,
+    borderLeftColor: '#2B68E6',
   },
 });
