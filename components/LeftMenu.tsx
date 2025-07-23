@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
 
-import { LeftMenuContext, UserInfo } from '@/app/_layout';
+import { LeftMenuContext } from '@/app/_layout';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
@@ -88,7 +88,7 @@ export default function LeftMenu({ chats = [], formatDate }: LeftMenuProps) {
     <TouchableOpacity
       key={item.id}
       style={styles.historyNavButton}
-      onPress={() => handleChatPress(item.id)}
+      onPress={() => handleChatPress(item.chat_id)}
     >
       <Ionicons name="chatbubble-outline" size={20} color={theme.text} />
       <ThemedText style={styles.menuItemText} numberOfLines={1}>
@@ -106,8 +106,10 @@ export default function LeftMenu({ chats = [], formatDate }: LeftMenuProps) {
   };
 
   const handleChatPress = (chatId: string) => {
+    console.log(chatId, "<-chatId");
     toggleLeftMenu();
-    router.push({ pathname: '/chat', params: { chatId } });
+    router.replace(`/(tabs)/chat?chatId=${chatId}`);
+    // router.push({ pathname: '/chat', params: { chatId } });
   };
 
   const handleLogin = () => {

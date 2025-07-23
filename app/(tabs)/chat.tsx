@@ -1,12 +1,9 @@
-import { LeftMenuContext } from '@/app/_layout';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { getChatHistory, getChatId, getUserChats, getUserInfo, isLoggedIn, streamChatResponse } from '@/services/chatApi';
-import { Chat } from '@/types/chat';
+import { getChatHistory, getChatId, isLoggedIn, streamChatResponse } from '@/services/chatApi';
 import { Ionicons } from '@expo/vector-icons';
-import { Stack } from 'expo-router';
-import React, { useContext, useEffect, useRef, useState } from 'react';
+import { Stack, useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import Markdown from 'react-native-markdown-display';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,6 +13,7 @@ interface Message {
   text: string;
   isUser: boolean;
   timestamp: Date;
+  response?: string;
 }
 
 function sanitizeToMarkdown(text: string): string {
@@ -33,19 +31,25 @@ export default function TabChatScreen() {
   const [chatId, setChatId] = useState<string>('');
   const flatListRef = useRef<FlatList>(null);
 
-  const generateId = () => `id-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+  const { chatId: chatIdParam } = useLocalSearchParams<{ chatId: string }>();
 
+  console.log(chatIdParam, "<-params");
   useEffect(() => {
     initChat();
     checkLoginStatus();
-  }, []);
+  }, [chatIdParam]);
 
   const initChat = async () => {
-    const response = await getChatId();
-    const chat_id = response;
-    console.log(chat_id, "<-response");
-    setChatId(chat_id || '');
-    loadChatHistory(chat_id);
+    if(chatIdParam){
+      setChatId(chatIdParam);
+      loadChatHistory(chatIdParam);
+    }else{
+      const response = await getChatId();
+      const chat_id = response;
+      console.log(chat_id, "<-response");
+      setChatId(chat_id || '');
+      loadChatHistory(chat_id);
+    }
   };
 
   const loadChatHistory = async (chatId: string) => {
@@ -54,8 +58,9 @@ export default function TabChatScreen() {
       const response = await getChatHistory(chatId);
       if (response.messages && Array.isArray(response.messages)) {
         const formattedMessages = response.messages.map((msg: any) => ({
-          chat_id: msg.id || generateId(),
-          text: msg.content || msg.text,
+          chat_id: msg.id || chatId,
+          text: msg.message,
+          response: msg.response,
           isUser: msg.role === 'user',
           timestamp: new Date(msg.timestamp || Date.now())
         }));
@@ -87,7 +92,7 @@ export default function TabChatScreen() {
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
 
     try {
-      const botMessageId = generateId();
+      const botMessageId = chatId;
       const initialBotMessage: Message = {
         chat_id: botMessageId,
         text: "",
@@ -141,20 +146,27 @@ export default function TabChatScreen() {
   const renderMessage = ({ item }: { item: Message }) => {
     // Ensure item.text is always a string to prevent Markdown component errors
     const messageText = typeof item.text === 'string' ? item.text : String(item.text || '');
+    const messageResponse = typeof item.response === 'string' ? item.response : String(item.response || '');
     
     return (
-      <ThemedView 
-        style={[
-          styles.messageBubble,
-          item.isUser ? styles.userBubble : styles.botBubble
-        ]}
-      >
-        {item.isUser ? (
-          <ThemedText style={styles.userMessageText}>{messageText}</ThemedText>
-        ) : (
-          <Markdown style={markdownStyles}>{messageText}</Markdown>
-        )}
-      </ThemedView>
+      <>
+        <ThemedView 
+          style={[
+            styles.messageBubble,
+            styles.userBubble
+          ]}
+        >
+            <ThemedText style={styles.userMessageText}>{messageText}</ThemedText>
+        </ThemedView>
+        <ThemedView 
+          style={[
+            styles.messageBubble,
+            styles.botBubble
+          ]}
+        >
+            <Markdown style={markdownStyles}>{messageResponse}</Markdown>
+        </ThemedView>
+      </>
     );
   };
 
@@ -174,7 +186,7 @@ export default function TabChatScreen() {
           ref={flatListRef}
           data={messages}
           renderItem={renderMessage}
-          keyExtractor={(item, index) => String(index)}
+          keyExtractor={(_, index) => String(index)}
           contentContainerStyle={styles.messagesList}
           ListEmptyComponent={
             <ThemedView style={styles.emptyContainer}>
@@ -216,7 +228,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  
   messagesList: {
     flexGrow: 1,
     padding: 16,

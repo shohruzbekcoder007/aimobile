@@ -212,7 +212,6 @@ export default function TabLayout() {
             tabBarItemStyle: {
               marginHorizontal: 5,
             },
-            // Header'ga tugmalarni qo'shish
             headerLeft: () => (
               <TouchableOpacity
                 onPress={toggleLeftMenu}
