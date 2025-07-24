@@ -3,12 +3,13 @@ import { router } from 'expo-router';
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
 
-import { LeftMenuContext } from '@/app/_layout';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { Chat } from '@/types/chat';
+import { LeftMenuContext } from "@/app/_layout";
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
+import { Colors } from "@/constants/Colors";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { Chat } from "@/types/chat";
+import api from "@/services/chatApi";
 
 interface LeftMenuProps {
   chats?: Chat[];
@@ -28,6 +29,9 @@ export default function LeftMenu({ chats = [], formatDate }: LeftMenuProps) {
   const theme = Colors[colorScheme ?? 'light'];
   const { leftMenuVisible, toggleLeftMenu, isUserLoggedIn, userInfo } = useContext(LeftMenuContext);
   const leftMenuAnim = useRef(new Animated.Value(-300)).current;
+  
+  // Force hasMore to be true for testing
+  // Ko'proq ma'lumotlar borligini ko'rsatish uchun
 
   // Check for active chat from URL when component mounts
   useEffect(() => {
@@ -38,6 +42,31 @@ export default function LeftMenu({ chats = [], formatDate }: LeftMenuProps) {
     }
   }, []);
 
+  // API orqali chatlarni yuklash
+  const fetchChats = useCallback(async (offset = 0, limit = ITEMS_PER_PAGE) => {
+    try {
+      setIsLoading(true);
+      console.log(`Fetching chats with offset=${offset}, limit=${limit}`);
+      
+      const response = await api.get(`/api/user-chats?offset=${offset}&limit=${limit}`);
+      console.log('API response:', response.data);
+      
+      // Serverdan kelgan javob formatini tekshirish
+      if (response.data && response.data.success && Array.isArray(response.data.chats)) {
+        console.log(`Received ${response.data.chats.length} chats`);
+        return response.data.chats;
+      } else {
+        console.error('Invalid response format:', response.data);
+        return [];
+      }
+    } catch (error) {
+      console.error('Error fetching chats:', error);
+      return [];
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (leftMenuVisible) {
       Animated.timing(leftMenuAnim, {
@@ -45,10 +74,16 @@ export default function LeftMenu({ chats = [], formatDate }: LeftMenuProps) {
         duration: 300,
         useNativeDriver: true,
       }).start();
-      // Reset pagination when menu opens
-      setPage(1);
-      setDisplayedChats(chats.slice(0, ITEMS_PER_PAGE));
-      setHasMore(chats.length > ITEMS_PER_PAGE);
+      
+      // Menu ochilganda chatlarni API orqali yuklash
+      const loadInitialChats = async () => {
+        setPage(1);
+        const initialChats = await fetchChats(0, ITEMS_PER_PAGE);
+        setDisplayedChats(initialChats);
+        setHasMore(initialChats.length === ITEMS_PER_PAGE);
+      };
+      
+      loadInitialChats();
     } else {
       Animated.timing(leftMenuAnim, {
         toValue: -300,
@@ -56,42 +91,64 @@ export default function LeftMenu({ chats = [], formatDate }: LeftMenuProps) {
         useNativeDriver: true,
       }).start();
     }
-  }, [leftMenuVisible, leftMenuAnim, chats]);
+  }, [leftMenuVisible, leftMenuAnim, fetchChats]);
 
-  const loadMoreChats = useCallback(() => {
-    if (isLoading || !hasMore) return;
-
-    setIsLoading(true);
-    const nextPage = page + 1;
-    const startIndex = (nextPage - 1) * ITEMS_PER_PAGE;
-    const newChats = chats.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-
+  const loadMoreChats = useCallback(async () => {
+    if (isLoading) return;
+    
+    const offset = page * ITEMS_PER_PAGE;
+    const newChats = await fetchChats(offset, ITEMS_PER_PAGE);
+    
     if (newChats.length === 0) {
       setHasMore(false);
-      setIsLoading(false);
-      return;
+    } else {
+      setDisplayedChats(prev => [...prev, ...newChats]);
+      setPage(prevPage => prevPage + 1);
     }
+  }, [page, isLoading, fetchChats]);
 
-    setDisplayedChats(prev => [...prev, ...newChats]);
-    setPage(nextPage);
-    setIsLoading(false);
-  }, [page, isLoading, hasMore, chats]);
-
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
+    const initialChats = await fetchChats(0, ITEMS_PER_PAGE);
+    setDisplayedChats(initialChats);
     setPage(1);
-    setDisplayedChats(chats.slice(0, ITEMS_PER_PAGE));
-    setHasMore(chats.length > ITEMS_PER_PAGE);
+    setHasMore(initialChats.length === ITEMS_PER_PAGE);
     setRefreshing(false);
-  }, [chats]);
+  }, [fetchChats]);
+
+  // Separate load more button to ensure visibility
+  const LoadMoreButton = () => {
+    if (isLoading) {
+      return (
+        <View style={styles.loadMoreButton}>
+          <ActivityIndicator size="small" color="#FFFFFF" />
+        </View>
+      );
+    }
+    
+    if (!hasMore) return null;
+    
+    return (
+      <TouchableOpacity 
+        style={styles.loadMoreButton} 
+        onPress={loadMoreChats}
+        disabled={isLoading}
+      >
+        <ThemedText style={styles.loadMoreButtonText}>Yana yuklash</ThemedText>
+        <Ionicons name="chevron-down-outline" size={16} color="#FFFFFF" />
+      </TouchableOpacity>
+    );
+  };
 
   const renderFooter = () => {
-    if (!isLoading) return null;
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color={theme.tint} />
-      </View>
-    );
+    if (isLoading) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color={theme.tint} />
+        </View>
+      );
+    }
+    return null;
   };
 
   const renderChatItem = ({ item }: { item: Chat }) => (
@@ -206,9 +263,6 @@ export default function LeftMenu({ chats = [], formatDate }: LeftMenuProps) {
             keyExtractor={(_, index) => String(index)}
             style={styles.chatList}
             contentContainerStyle={styles.chatListContent}
-            onEndReached={loadMoreChats}
-            onEndReachedThreshold={0.1}
-            ListFooterComponent={renderFooter}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
@@ -218,6 +272,12 @@ export default function LeftMenu({ chats = [], formatDate }: LeftMenuProps) {
               />
             }
           />
+
+          {/* Load more button - doim ko'rinadigan joylashtirilgan */}
+          <View style={styles.loadMoreContainer}>
+            <LoadMoreButton />
+          </View>
+          
         </View>
       </Animated.View>
     </>
@@ -239,6 +299,25 @@ const styles = StyleSheet.create({
   loadingContainer: {
     paddingVertical: 10,
     alignItems: 'center',
+  },
+  loadMoreContainer: {
+    width: '100%',
+    padding: 10,
+    marginBottom: 10,
+  },
+  loadMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    marginHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#2B68E6',
+  },
+  loadMoreButtonText: {
+    marginRight: 5,
+    fontWeight: '500',
+    color: '#FFFFFF',
   },
   menuOverlay: {
     position: 'absolute',
