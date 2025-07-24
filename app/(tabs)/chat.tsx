@@ -7,6 +7,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import Markdown from 'react-native-markdown-display';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import uuid from 'react-native-uuid';
 
 interface Message {
   chat_id: string;
@@ -14,6 +15,7 @@ interface Message {
   isUser: boolean;
   timestamp: Date;
   response?: string;
+  uid?: string;
 }
 
 function sanitizeToMarkdown(text: string): string {
@@ -62,7 +64,8 @@ export default function TabChatScreen() {
           text: msg.message,
           response: msg.response,
           isUser: msg.role === 'user',
-          timestamp: new Date(msg.timestamp || Date.now())
+          timestamp: new Date(msg.timestamp || Date.now()),
+          uid: msg.uid || ''
         }));
         setMessages(formattedMessages);
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 200);
@@ -79,11 +82,15 @@ export default function TabChatScreen() {
   const handleSendMessage = async () => {
     if (!inputText.trim() || isLoading) return;
 
+    const uid = uuid.v4();
+
     const userMessage: Message = {
       chat_id: chatId,
       text: inputText.trim(),
       isUser: true,
       timestamp: new Date(),
+      response: "", // Initialize empty response for user message
+      uid: uid,
     };
 
     setMessages(prev => [...prev, userMessage]);
@@ -92,28 +99,17 @@ export default function TabChatScreen() {
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
 
     try {
-      const botMessageId = chatId;
-      const initialBotMessage: Message = {
-        chat_id: botMessageId,
-        text: "",
-        isUser: false,
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, initialBotMessage]);
-
       await streamChatResponse(
         userMessage.text,
         (chunk: string | any) => {
-          // Ensure chunk is a string
           const chunkStr = typeof chunk === 'string' ? chunk : String(chunk);
-          
           setMessages(prevMessages => {
             const updated = [...prevMessages];
-            const index = updated.findIndex(msg => msg.chat_id === botMessageId);
+            const index = updated.findIndex(msg => msg.uid === uid);
             if (index !== -1) {
               updated[index] = {
                 ...updated[index],
-                text: updated[index].text + sanitizeToMarkdown(chunkStr),
+                response: updated[index].response + sanitizeToMarkdown(chunkStr),
               };
             }
             return updated;
@@ -130,11 +126,11 @@ export default function TabChatScreen() {
       Alert.alert('Xato', 'Xabar yuborishda xatolik yuz berdi. Iltimos, qayta urinib ko\'ring.');
       setMessages(prev => {
         const updated = [...prev];
-        const index = updated.findIndex(msg => !msg.isUser && msg.text === '');
+        const index = updated.findIndex(msg => !msg.isUser && msg.response === '');
         if (index !== -1) {
           updated[index] = {
             ...updated[index],
-            text: "Xatolik yuz berdi. Iltimos, qayta urinib ko'ring."
+            response: "Xatolik yuz berdi. Iltimos, qayta urinib ko'ring."
           };
         }
         return updated;
